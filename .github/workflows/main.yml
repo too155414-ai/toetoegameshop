@@ -1,0 +1,55 @@
+
+name: Toe Toe Game Shop Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "toe_toe_game_shop_android_ready.zip"
+      - ".github/workflows/main.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Extract source ZIP
+        run: |
+          ZIP_FILE=$(find . -maxdepth 1 -name '*.zip' | head -n 1)
+          test -n "$ZIP_FILE"
+          mkdir appsrc
+          unzip -o "$ZIP_FILE" -d appsrc
+
+      - name: Build Android APK
+        run: |
+          cd appsrc/client
+          npm install
+          npm run build
+          npx cap add android
+          npx cap sync android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: toe-toe-game-shop-apk
+          path: appsrc/client/android/app/build/outputs/apk/debug/app-debug.apk
+          
